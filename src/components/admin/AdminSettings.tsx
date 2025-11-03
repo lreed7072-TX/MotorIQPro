@@ -5,6 +5,7 @@ import { Users, Building2, Package, Wrench, Trash2, Plus, X, FileText, Palette }
 import CustomerManagement from './CustomerManagement';
 import EquipmentManagement from './EquipmentManagement';
 import CompanyBranding from './CompanyBranding';
+import CustomFormBuilder from './CustomFormBuilder';
 
 interface User {
   id: string;
@@ -275,13 +276,7 @@ export default function AdminSettings() {
               )}
               {activeTab === 'customers' && <CustomerManagement />}
               {activeTab === 'branding' && isAdmin && <CompanyBranding />}
-              {activeTab === 'forms' && isAdmin && (
-                <div className="text-center py-12">
-                  <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-600 mb-2">Custom Form Builder</p>
-                  <p className="text-sm text-slate-500">Coming soon - AI-assisted form builder for work order tasks</p>
-                </div>
-              )}
+              {activeTab === 'forms' && isAdmin && <CustomFormBuilder />}
               {activeTab === 'manufacturers' && (
                 <ManufacturersTab
                   manufacturers={manufacturers}
