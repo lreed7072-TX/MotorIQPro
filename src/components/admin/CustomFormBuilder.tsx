@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { FileText, Plus, Edit, Trash2, X, Save, GripVertical, Type, Hash, Calendar, CheckSquare, AlignLeft, Sparkles } from 'lucide-react';
+import { FileText, Plus, Edit, Trash2, X, Save, GripVertical, Type, Hash, Calendar, CheckSquare, AlignLeft } from 'lucide-react';
 
 interface CustomForm {
   id: string;
@@ -19,7 +19,76 @@ interface FormField {
   required: boolean;
   placeholder?: string;
   options?: string[];
+  validation?: any;
+  name?: string;
 }
+
+interface PreMadeFormField {
+  label: string;
+  name: string;
+  type: string;
+  required: boolean;
+  validation?: any;
+}
+
+const PRE_MADE_FORMS: Record<string, PreMadeFormField[]> = {
+  'Submersible Wastewater Pumps Start up': [
+    { label: "Installation Date", name: "installation_date", type: "date", required: true },
+    { label: "Installer Name", name: "installer_name", type: "string", required: true, validation: { pattern: "^[A-Za-z ,.'-]{2,60}$" } },
+    { label: "Installer Company", name: "installer_company", type: "string", required: true, validation: { maxLength: 80 } },
+    { label: "Mounting Type", name: "mounting_type", type: "string", required: true, validation: { enum: ["Guide rail", "Free standing", "Portable"] } },
+    { label: "Discharge Size (in)", name: "discharge_size_in", type: "number", required: true, validation: { min: 1, max: 48 } },
+    { label: "Cable Length (ft)", name: "cable_length_ft", type: "number", required: false, validation: { min: 1, max: 500 } },
+    { label: "Site Conditions Notes", name: "site_conditions_notes", type: "string", required: false, validation: { maxLength: 500 } },
+    { label: "Wet Well Level at Start (ft below rim)", name: "wet_well_level_start_ft", type: "number", required: false, validation: { min: 0, max: 100 } },
+    { label: "Ambient Temperature (°C)", name: "ambient_temp_c", type: "number", required: false, validation: { min: -20, max: 60 } },
+    { label: "Supply Voltage AB (V)", name: "voltage_ab_v", type: "number", required: true, validation: { min: 180, max: 660 } },
+    { label: "Supply Voltage BC (V)", name: "voltage_bc_v", type: "number", required: true, validation: { min: 180, max: 660 } },
+    { label: "Supply Voltage CA (V)", name: "voltage_ca_v", type: "number", required: true, validation: { min: 180, max: 660 } },
+    { label: "Voltage Imbalance (%)", name: "voltage_imbalance_pct", type: "number", required: false, validation: { min: 0, max: 10 } },
+    { label: "Line Current A (A)", name: "current_a_a", type: "number", required: true, validation: { min: 0, max: 2000 } },
+    { label: "Line Current B (A)", name: "current_b_a", type: "number", required: true, validation: { min: 0, max: 2000 } },
+    { label: "Line Current C (A)", name: "current_c_a", type: "number", required: true, validation: { min: 0, max: 2000 } },
+    { label: "Current Imbalance (%)", name: "current_imbalance_pct", type: "number", required: false, validation: { min: 0, max: 10 } },
+    { label: "Frequency (Hz)", name: "measured_hz", type: "number", required: true, validation: { min: 45, max: 65 } },
+    { label: "Power Factor", name: "power_factor", type: "number", required: false, validation: { min: 0, max: 1 } },
+    { label: "Insulation Resistance to Ground (MΩ)", name: "ir_megohms", type: "number", required: true, validation: { min: 1, max: 1000 } },
+    { label: "IR Test Voltage (VDC)", name: "ir_test_voltage_vdc", type: "number", required: true, validation: { enum: [500, 1000] } },
+    { label: "Winding Resistance A-B (Ω)", name: "wres_ab_ohm", type: "number", required: false, validation: { min: 0, max: 100 } },
+    { label: "Winding Resistance B-C (Ω)", name: "wres_bc_ohm", type: "number", required: false, validation: { min: 0, max: 100 } },
+    { label: "Winding Resistance C-A (Ω)", name: "wres_ca_ohm", type: "number", required: false, validation: { min: 0, max: 100 } },
+    { label: "Start Method", name: "start_method", type: "string", required: true, validation: { enum: ["DOL/Across-the-line", "Soft starter", "VFD"] } },
+    { label: "VFD Output Frequency at Duty (Hz)", name: "vfd_output_hz", type: "number", required: false, validation: { min: 0, max: 120 } },
+    { label: "Run Time During Test (min)", name: "runtime_min", type: "number", required: true, validation: { min: 1, max: 240 } },
+    { label: "Flow Rate (GPM)", name: "flow_gpm", type: "number", required: false, validation: { min: 0, max: 20000 } },
+    { label: "Total Dynamic Head (ft)", name: "tdh_ft", type: "number", required: false, validation: { min: 0, max: 300 } },
+    { label: "Discharge Pressure (psi)", name: "discharge_psi", type: "number", required: false, validation: { min: 0, max: 150 } },
+    { label: "Vibration RMS at Motor (mm/s)", name: "vibration_mms", type: "number", required: false, validation: { min: 0, max: 50 } },
+    { label: "Motor Temperature at End of Test (°C)", name: "motor_temp_c", type: "number", required: false, validation: { min: 0, max: 150 } },
+    { label: "Rotation Verified Correct", name: "rotation_correct", type: "boolean", required: true },
+    { label: "Lockout/Tagout Removed After Checks", name: "chk_loto_removed", type: "boolean", required: true },
+    { label: "Area Cleared and Barricaded", name: "chk_area_secure", type: "boolean", required: true },
+    { label: "Grounding Verified", name: "chk_grounding", type: "boolean", required: true },
+    { label: "Cable Entry/Seals Intact", name: "chk_cable_entry", type: "boolean", required: true },
+    { label: "Seal Oil Level OK", name: "chk_seal_oil", type: "boolean", required: true },
+    { label: "Leakage/Seal Probe Tested", name: "chk_seal_probe", type: "boolean", required: true },
+    { label: "Thermal Sensors Tested", name: "chk_thermal", type: "boolean", required: true },
+    { label: "Check Valve Operation Verified", name: "chk_check_valve", type: "boolean", required: true },
+    { label: "Non-Return/Isolation Valves Positioned Correctly", name: "chk_valve_positions", type: "boolean", required: true },
+    { label: "No Abnormal Noise or Vibration", name: "chk_noise_vibration", type: "boolean", required: true },
+    { label: "No Visible Leaks at Discharge Piping", name: "chk_no_leaks", type: "boolean", required: true },
+    { label: "Control Panel Settings Recorded/Backed Up", name: "chk_panel_settings_saved", type: "boolean", required: true },
+    { label: "Alarms and Interlocks Tested", name: "chk_alarms_interlocks", type: "boolean", required: true },
+    { label: "Pump Auto/Lead-Lag Sequencing Verified", name: "chk_lead_lag", type: "boolean", required: false },
+    { label: "Operational Test Passed", name: "chk_operational_pass", type: "boolean", required: true },
+    { label: "Photos/Docs Attached (URLs)", name: "attachments_urls", type: "string", required: false, validation: { maxLength: 500 } },
+    { label: "Remarks / Corrective Actions", name: "remarks", type: "string", required: false, validation: { maxLength: 1000 } },
+    { label: "Commissioning Technician Name", name: "tech_name", type: "string", required: true, validation: { pattern: "^[A-Za-z ,.'-]{2,60}$" } },
+    { label: "Commissioning Date", name: "commission_date", type: "date", required: true },
+    { label: "Owner/Representative Name", name: "owner_rep_name", type: "string", required: false, validation: { pattern: "^[A-Za-z ,.'-]{2,60}$" } },
+    { label: "Owner Acceptance", name: "owner_accept", type: "boolean", required: false }
+  ]
+};
 
 export default function CustomFormBuilder() {
   const [forms, setForms] = useState<CustomForm[]>([]);
@@ -31,8 +100,7 @@ export default function CustomFormBuilder() {
     description: '',
     form_fields: [] as FormField[],
   });
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [generatingWithAI, setGeneratingWithAI] = useState(false);
+  const [selectedPreMadeForm, setSelectedPreMadeForm] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
@@ -56,6 +124,55 @@ export default function CustomFormBuilder() {
   };
 
   const generateFieldId = () => `field_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  const convertPreMadeFieldType = (type: string): 'text' | 'number' | 'date' | 'checkbox' | 'textarea' | 'select' => {
+    switch (type) {
+      case 'string': return 'text';
+      case 'number': return 'number';
+      case 'date': return 'date';
+      case 'boolean': return 'checkbox';
+      default: return 'text';
+    }
+  };
+
+  const handleLoadPreMadeForm = () => {
+    if (!selectedPreMadeForm) return;
+
+    const preMadeFields = PRE_MADE_FORMS[selectedPreMadeForm];
+    if (!preMadeFields) return;
+
+    const convertedFields: FormField[] = preMadeFields.map(field => {
+      const convertedField: FormField = {
+        id: generateFieldId(),
+        label: field.label,
+        name: field.name,
+        type: convertPreMadeFieldType(field.type),
+        required: field.required,
+        validation: field.validation,
+      };
+
+      if (field.validation?.enum) {
+        convertedField.type = 'select';
+        convertedField.options = field.validation.enum;
+      }
+
+      if (field.validation?.maxLength && field.validation.maxLength > 200) {
+        convertedField.type = 'textarea';
+      }
+
+      return convertedField;
+    });
+
+    setFormData({
+      name: selectedPreMadeForm,
+      description: `Pre-made form: ${selectedPreMadeForm}`,
+      form_fields: convertedFields,
+    });
+
+    setSelectedPreMadeForm('');
+    setSuccessMessage('Pre-made form loaded! Review and save when ready.');
+    setTimeout(() => setSuccessMessage(''), 3000);
+  };
 
   const handleAddField = () => {
     const newField: FormField = {
@@ -159,120 +276,6 @@ export default function CustomFormBuilder() {
     }
   };
 
-  const handleGenerateWithAI = async () => {
-    if (!aiPrompt.trim()) return;
-
-    setGeneratingWithAI(true);
-    try {
-      const suggestedFields: FormField[] = generateFormFromPrompt(aiPrompt);
-
-      setFormData({
-        ...formData,
-        name: extractFormName(aiPrompt),
-        description: aiPrompt,
-        form_fields: suggestedFields,
-      });
-      setAiPrompt('');
-      setSuccessMessage('Form generated! Review and edit as needed.');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error) {
-      console.error('Error generating form:', error);
-      setSuccessMessage('Failed to generate form');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } finally {
-      setGeneratingWithAI(false);
-    }
-  };
-
-  const generateFormFromPrompt = (prompt: string): FormField[] => {
-    const fields: FormField[] = [];
-    const lowerPrompt = prompt.toLowerCase();
-
-    if (lowerPrompt.includes('inspection') || lowerPrompt.includes('check')) {
-      fields.push({
-        id: generateFieldId(),
-        label: 'Inspector Name',
-        type: 'text',
-        required: true,
-      });
-      fields.push({
-        id: generateFieldId(),
-        label: 'Inspection Date',
-        type: 'date',
-        required: true,
-      });
-    }
-
-    if (lowerPrompt.includes('measurement') || lowerPrompt.includes('reading')) {
-      fields.push({
-        id: generateFieldId(),
-        label: 'Measurement Value',
-        type: 'number',
-        required: true,
-      });
-      fields.push({
-        id: generateFieldId(),
-        label: 'Unit of Measurement',
-        type: 'text',
-        required: false,
-      });
-    }
-
-    if (lowerPrompt.includes('test') || lowerPrompt.includes('result')) {
-      fields.push({
-        id: generateFieldId(),
-        label: 'Test Result',
-        type: 'select',
-        required: true,
-        options: ['Pass', 'Fail', 'Needs Review'],
-      });
-    }
-
-    if (lowerPrompt.includes('condition') || lowerPrompt.includes('status')) {
-      fields.push({
-        id: generateFieldId(),
-        label: 'Overall Condition',
-        type: 'select',
-        required: true,
-        options: ['Excellent', 'Good', 'Fair', 'Poor'],
-      });
-    }
-
-    if (lowerPrompt.includes('note') || lowerPrompt.includes('comment') || lowerPrompt.includes('observation')) {
-      fields.push({
-        id: generateFieldId(),
-        label: 'Notes',
-        type: 'textarea',
-        required: false,
-        placeholder: 'Enter additional notes or observations...',
-      });
-    }
-
-    fields.push({
-      id: generateFieldId(),
-      label: 'Completed By',
-      type: 'text',
-      required: true,
-    });
-
-    fields.push({
-      id: generateFieldId(),
-      label: 'Completion Date',
-      type: 'date',
-      required: true,
-    });
-
-    return fields;
-  };
-
-  const extractFormName = (prompt: string): string => {
-    const match = prompt.match(/(?:create|make|build|form for)\s+(?:a\s+)?(.+?)(?:\s+form)?(?:\s+with|\s+that|\s+including|$)/i);
-    if (match && match[1]) {
-      return match[1].split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') + ' Form';
-    }
-    return 'Custom Form';
-  };
-
   const getFieldIcon = (type: string) => {
     switch (type) {
       case 'text': return <Type className="w-4 h-4" />;
@@ -315,7 +318,7 @@ export default function CustomFormBuilder() {
         </div>
 
         {successMessage && (
-          <div className={`mb-4 p-4 rounded-lg ${successMessage.includes('successfully') ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+          <div className={`mb-4 p-4 rounded-lg ${successMessage.includes('successfully') || successMessage.includes('loaded') ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
             {successMessage}
           </div>
         )}
@@ -340,32 +343,29 @@ export default function CustomFormBuilder() {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Sparkles className="w-5 h-5 text-blue-600 mt-1" />
-                <div className="flex-1">
-                  <h4 className="font-medium text-blue-900 mb-2">AI Form Generator</h4>
-                  <p className="text-sm text-blue-700 mb-3">
-                    Describe the form you need and AI will generate fields for you
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={aiPrompt}
-                      onChange={(e) => setAiPrompt(e.target.value)}
-                      placeholder="e.g., Create a motor inspection form with measurements and test results"
-                      className="flex-1 px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      onKeyDown={(e) => e.key === 'Enter' && handleGenerateWithAI()}
-                    />
-                    <button
-                      onClick={handleGenerateWithAI}
-                      disabled={!aiPrompt.trim() || generatingWithAI}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {generatingWithAI ? 'Generating...' : 'Generate'}
-                    </button>
-                  </div>
-                </div>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h4 className="font-medium text-green-900 mb-2">Load Pre-Made Form</h4>
+              <p className="text-sm text-green-700 mb-3">
+                Select a pre-made form template to get started quickly
+              </p>
+              <div className="flex gap-2">
+                <select
+                  value={selectedPreMadeForm}
+                  onChange={(e) => setSelectedPreMadeForm(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="">Select a pre-made form...</option>
+                  {Object.keys(PRE_MADE_FORMS).map(formName => (
+                    <option key={formName} value={formName}>{formName}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleLoadPreMadeForm}
+                  disabled={!selectedPreMadeForm}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Load Form
+                </button>
               </div>
             </div>
 
@@ -399,7 +399,7 @@ export default function CustomFormBuilder() {
             <div>
               <div className="flex items-center justify-between mb-3">
                 <label className="block text-sm font-medium text-slate-700">
-                  Form Fields
+                  Form Fields ({formData.form_fields.length})
                 </label>
                 <button
                   onClick={handleAddField}
@@ -410,7 +410,7 @@ export default function CustomFormBuilder() {
                 </button>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {formData.form_fields.map((field, index) => (
                   <div key={field.id} className="bg-slate-50 border border-slate-200 rounded-lg p-4">
                     <div className="flex items-start gap-3">
@@ -501,7 +501,7 @@ export default function CustomFormBuilder() {
                   <div className="text-center py-8 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg">
                     <FileText className="w-12 h-12 text-slate-300 mx-auto mb-2" />
                     <p className="text-slate-500 text-sm">No fields added yet</p>
-                    <p className="text-slate-400 text-xs">Use AI Generator or click "Add Field" to get started</p>
+                    <p className="text-slate-400 text-xs">Load a pre-made form or click "Add Field" to get started</p>
                   </div>
                 )}
               </div>
@@ -549,15 +549,7 @@ export default function CustomFormBuilder() {
               <div key={form.id} className="bg-white rounded-lg border border-slate-200 p-6 hover:border-slate-300 transition">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-lg font-semibold text-slate-900">{form.name}</h3>
-                      {form.ai_generated && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
-                          <Sparkles className="w-3 h-3" />
-                          AI Generated
-                        </span>
-                      )}
-                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-1">{form.name}</h3>
                     {form.description && (
                       <p className="text-sm text-slate-600">{form.description}</p>
                     )}
