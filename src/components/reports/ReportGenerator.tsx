@@ -89,6 +89,7 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
       if (sessionsError) throw sessionsError;
 
       const formattedSessions: PhaseSession[] = [];
+      const phaseMap = new Map<string, PhaseSession>();
 
       for (const session of sessions || []) {
         const { data: procedureData } = await supabase
@@ -97,13 +98,15 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
           .eq('id', session.procedure_template_id)
           .single();
 
-        const { data: reportData } = await supabase
+        const { data: reportDataArray } = await supabase
           .from('phase_reports')
           .select('summary, technician_notes, step_completions, photos')
           .eq('work_session_id', session.id)
-          .maybeSingle();
+          .order('created_at', { ascending: false });
 
-        formattedSessions.push({
+        const reportData = reportDataArray && reportDataArray.length > 0 ? reportDataArray[0] : null;
+
+        const phaseSession: PhaseSession = {
           id: session.id,
           phase: procedureData?.phase || '',
           procedure_name: procedureData?.name || '',
@@ -113,10 +116,21 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
           phase_report: reportData || undefined,
           procedure_template_id: session.procedure_template_id,
           equipment_details: session.equipment_details,
-        });
+        };
+
+        const phase = procedureData?.phase || '';
+        const existing = phaseMap.get(phase);
+
+        if (!existing || new Date(session.completed_at) > new Date(existing.completed_at)) {
+          phaseMap.set(phase, phaseSession);
+        }
       }
 
-      setPhaseSessions(formattedSessions);
+      const uniqueSessions = Array.from(phaseMap.values()).sort((a, b) =>
+        new Date(a.started_at).getTime() - new Date(b.started_at).getTime()
+      );
+
+      setPhaseSessions(uniqueSessions);
     } catch (err: any) {
       setError(err.message);
     } finally {
