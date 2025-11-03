@@ -18,7 +18,6 @@ import {
   FileSpreadsheet,
   FolderOpen
 } from 'lucide-react';
-import OfflineIndicator from '../shared/OfflineIndicator';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -155,8 +154,6 @@ export default function DashboardLayout({ children, currentPage = 'dashboard', o
       <main className="lg:ml-64 pt-16 lg:pt-0">
         {children}
       </main>
-
-      <OfflineIndicator />
     </div>
   );
 }
