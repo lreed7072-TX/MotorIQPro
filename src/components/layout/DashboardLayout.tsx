@@ -15,7 +15,8 @@ import {
   MessageSquare,
   Clock,
   BarChart3,
-  FileSpreadsheet
+  FileSpreadsheet,
+  FolderOpen
 } from 'lucide-react';
 import OfflineIndicator from '../shared/OfflineIndicator';
 
@@ -41,6 +42,7 @@ export default function DashboardLayout({ children, currentPage = 'dashboard', o
     { name: 'Equipment', icon: Wrench, page: 'equipment', roles: ['all'] },
     { name: 'Inventory', icon: Package, page: 'inventory', roles: ['admin', 'manager', 'technician'] },
     { name: 'Quotes', icon: FileSpreadsheet, page: 'quotes', roles: ['admin', 'manager', 'salesperson'] },
+    { name: 'Documents', icon: FolderOpen, page: 'documents', roles: ['all'] },
     { name: 'Messages', icon: MessageSquare, page: 'messages', roles: ['all'] },
     { name: 'Time Clock', icon: Clock, page: 'time-clock', roles: ['technician'] },
     { name: 'Analytics', icon: BarChart3, page: 'analytics', roles: ['admin', 'manager'] },

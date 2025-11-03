@@ -12,6 +12,10 @@ import {
   UserPlus,
   ClipboardList,
   FileText,
+  Upload,
+  Download,
+  Trash2,
+  File,
 } from 'lucide-react';
 import AssignWorkOrder from './AssignWorkOrder';
 import StartWorkSession from '../work-session/StartWorkSession';
@@ -84,6 +88,8 @@ export default function WorkOrderDetail({
   const [showViewReport, setShowViewReport] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [showReportGenerator, setShowReportGenerator] = useState(false);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
   const isManager = profile?.role === 'manager';
@@ -106,6 +112,7 @@ export default function WorkOrderDetail({
 
   useEffect(() => {
     loadWorkOrder();
+    loadDocuments();
   }, [workOrderId]);
 
   const loadWorkOrder = async () => {
@@ -256,6 +263,84 @@ export default function WorkOrderDetail({
     } catch (error) {
       console.error('Error starting next phase:', error);
     }
+  };
+
+  const loadDocuments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('work_order_documents')
+        .select('*')
+        .eq('work_order_id', workOrderId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setDocuments(data || []);
+    } catch (error) {
+      console.error('Error loading documents:', error);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${workOrderId}/${Math.random()}.${fileExt}`;
+      const filePath = `work-orders/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+
+      const { error: dbError } = await supabase.from('work_order_documents').insert({
+        work_order_id: workOrderId,
+        name: file.name,
+        file_url: publicUrl,
+        file_type: fileExt || 'unknown',
+        file_size: file.size,
+        uploaded_by: profile?.id
+      });
+
+      if (dbError) throw dbError;
+
+      loadDocuments();
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file. Make sure the storage bucket is configured.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('work_order_documents')
+        .delete()
+        .eq('id', docId);
+
+      if (error) throw error;
+      loadDocuments();
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      alert('Failed to delete document');
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
 
@@ -462,6 +547,65 @@ export default function WorkOrderDetail({
                 </div>
               </div>
             )}
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-slate-700">Documents</h3>
+                <label className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition cursor-pointer">
+                  <Upload className="w-4 h-4" />
+                  <span>{uploading ? 'Uploading...' : 'Upload'}</span>
+                  <input
+                    type="file"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              {documents.length === 0 ? (
+                <div className="p-6 bg-slate-50 rounded-lg border border-slate-200 text-center">
+                  <File className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">No documents uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 hover:bg-slate-100 transition"
+                    >
+                      <File className="w-6 h-6 text-slate-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">{doc.name}</p>
+                        <p className="text-xs text-slate-500">
+                          {formatFileSize(doc.file_size)} • {new Date(doc.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <a
+                          href={doc.file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 hover:bg-blue-50 rounded transition"
+                          title="Download"
+                        >
+                          <Download className="w-4 h-4 text-blue-600" />
+                        </a>
+                        {(canManage || doc.uploaded_by === profile?.id) && (
+                          <button
+                            onClick={() => handleDeleteDocument(doc.id)}
+                            className="p-1.5 hover:bg-red-50 rounded transition"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {approvals.length > 0 && (
               <div>

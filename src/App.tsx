@@ -13,6 +13,7 @@ import QuotesManagement from './components/quotes/QuotesManagement';
 import MessagesCenter from './components/messages/MessagesCenter';
 import TimeClock from './components/time-clock/TimeClock';
 import AnalyticsDashboard from './components/analytics/AnalyticsDashboard';
+import DocumentsLibrary from './components/documents/DocumentsLibrary';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -62,6 +63,12 @@ function AppContent() {
         return (
           <DashboardLayout currentPage={currentPage} onNavigate={setCurrentPage}>
             <QuotesManagement />
+          </DashboardLayout>
+        );
+      case 'documents':
+        return (
+          <DashboardLayout currentPage={currentPage} onNavigate={setCurrentPage}>
+            <DocumentsLibrary />
           </DashboardLayout>
         );
       case 'messages':
