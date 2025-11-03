@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { Users, Building2, Package, Wrench, Trash2, Plus, X } from 'lucide-react';
+import { Users, Building2, Package, Wrench, Trash2, Plus, X, FileText, Palette } from 'lucide-react';
 import CustomerManagement from './CustomerManagement';
 import EquipmentManagement from './EquipmentManagement';
+import CompanyBranding from './CompanyBranding';
 
 interface User {
   id: string;
@@ -37,7 +38,7 @@ interface Manufacturer {
 
 export default function AdminSettings() {
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<'users' | 'customers' | 'manufacturers' | 'equipment'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'customers' | 'manufacturers' | 'equipment' | 'branding' | 'forms'>('users');
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
@@ -229,6 +230,32 @@ export default function AdminSettings() {
               <Wrench className="w-5 h-5" />
               Equipment
             </button>
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => setActiveTab('branding')}
+                  className={`flex items-center gap-2 px-6 py-4 font-medium border-b-2 transition ${
+                    activeTab === 'branding'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Palette className="w-5 h-5" />
+                  Company Branding
+                </button>
+                <button
+                  onClick={() => setActiveTab('forms')}
+                  className={`flex items-center gap-2 px-6 py-4 font-medium border-b-2 transition ${
+                    activeTab === 'forms'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <FileText className="w-5 h-5" />
+                  Custom Forms
+                </button>
+              </>
+            )}
           </nav>
         </div>
 
@@ -247,6 +274,14 @@ export default function AdminSettings() {
                 />
               )}
               {activeTab === 'customers' && <CustomerManagement />}
+              {activeTab === 'branding' && isAdmin && <CompanyBranding />}
+              {activeTab === 'forms' && isAdmin && (
+                <div className="text-center py-12">
+                  <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-600 mb-2">Custom Form Builder</p>
+                  <p className="text-sm text-slate-500">Coming soon - AI-assisted form builder for work order tasks</p>
+                </div>
+              )}
               {activeTab === 'manufacturers' && (
                 <ManufacturersTab
                   manufacturers={manufacturers}

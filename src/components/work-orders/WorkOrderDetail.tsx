@@ -18,6 +18,8 @@ import {
   File,
   FileCheck,
   XCircle,
+  CheckCircle,
+  DollarSign,
 } from 'lucide-react';
 import AssignWorkOrder from './AssignWorkOrder';
 import StartWorkSession from '../work-session/StartWorkSession';
@@ -27,6 +29,7 @@ import ApprovalReview from './ApprovalReview';
 import ViewPhaseReport from '../work-session/ViewPhaseReport';
 import ReportGenerator from '../reports/ReportGenerator';
 import ApproveWorkOrder from './ApproveWorkOrder';
+import GenerateQuote from './GenerateQuote';
 import type { WorkOrder, WorkOrderAssignment, WorkOrderApproval } from '../../types/database';
 
 interface WorkOrderDetailProps {
@@ -94,6 +97,7 @@ export default function WorkOrderDetail({
   const [documents, setDocuments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [showApproveWorkOrder, setShowApproveWorkOrder] = useState(false);
+  const [showGenerateQuote, setShowGenerateQuote] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
   const isManager = profile?.role === 'manager';
@@ -386,6 +390,28 @@ export default function WorkOrderDetail({
     } catch (error) {
       console.error('Error rejecting approval:', error);
       alert('Failed to reject approval');
+    }
+  };
+
+  const handleMarkComplete = async () => {
+    if (!confirm('Mark this work order as complete? This action cannot be undone.')) return;
+
+    try {
+      const { error } = await supabase
+        .from('work_orders')
+        .update({
+          status: 'completed',
+          current_phase: 'completed',
+        })
+        .eq('id', workOrderId);
+
+      if (error) throw error;
+
+      loadWorkOrder();
+      onUpdate();
+    } catch (error) {
+      console.error('Error marking as complete:', error);
+      alert('Failed to mark as complete');
     }
   };
 
@@ -845,13 +871,32 @@ export default function WorkOrderDetail({
                 </>
               )}
 
-              <button
-                onClick={() => setShowReportGenerator(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition ml-auto"
-              >
-                <FileText className="w-4 h-4" />
-                Generate Report
-              </button>
+              {canManage && workOrder.status !== 'completed' && (
+                <button
+                  onClick={handleMarkComplete}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Mark Complete
+                </button>
+              )}
+
+              <div className="flex gap-3 ml-auto">
+                <button
+                  onClick={() => setShowGenerateQuote(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  <DollarSign className="w-4 h-4" />
+                  Generate Quote
+                </button>
+                <button
+                  onClick={() => setShowReportGenerator(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition"
+                >
+                  <FileText className="w-4 h-4" />
+                  Generate Report
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -954,6 +999,13 @@ export default function WorkOrderDetail({
             loadWorkOrder();
             onUpdate();
           }}
+        />
+      )}
+
+      {showGenerateQuote && (
+        <GenerateQuote
+          workOrder={workOrder}
+          onClose={() => setShowGenerateQuote(false)}
         />
       )}
     </>
