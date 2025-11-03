@@ -86,6 +86,8 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
       console.log('Work order loaded:', woData);
       setWorkOrder(woData);
 
+      console.log('Querying work_sessions for work_order_id:', workOrderId);
+
       const { data: sessions, error: sessionsError } = await supabase
         .from('work_sessions')
         .select('*')
@@ -93,9 +95,12 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
         .eq('status', 'completed')
         .order('started_at');
 
-      if (sessionsError) throw sessionsError;
+      if (sessionsError) {
+        console.error('Error loading sessions:', sessionsError);
+        throw sessionsError;
+      }
 
-      console.log('Found completed sessions:', sessions?.length);
+      console.log('Found completed sessions:', sessions?.length, 'Sessions:', sessions);
 
       const formattedSessions: PhaseSession[] = [];
       const phaseMap = new Map<string, PhaseSession>();
