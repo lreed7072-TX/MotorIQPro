@@ -18,6 +18,14 @@ interface DashboardProps {
 export default function Dashboard({ onNavigate }: DashboardProps) {
   const { profile } = useAuth();
   const [currentView, setCurrentView] = useState<'dashboard' | 'work-orders' | 'equipment' | 'reports' | 'settings'>('dashboard');
+
+  const handleNavigate = (page: string) => {
+    if (onNavigate) {
+      onNavigate(page);
+    } else {
+      setCurrentView(page as any);
+    }
+  };
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<string | null>(null);
@@ -106,7 +114,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   if (currentView === 'settings') {
     return (
-      <DashboardLayout currentPage="settings" onNavigate={setCurrentView}>
+      <DashboardLayout currentPage="settings" onNavigate={handleNavigate}>
         <AdminSettings />
       </DashboardLayout>
     );
@@ -114,7 +122,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   if (currentView === 'work-orders') {
     return (
-      <DashboardLayout currentPage="work-orders" onNavigate={setCurrentView}>
+      <DashboardLayout currentPage="work-orders" onNavigate={handleNavigate}>
         <WorkOrdersList />
       </DashboardLayout>
     );
@@ -122,7 +130,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   if (currentView === 'equipment') {
     return (
-      <DashboardLayout currentPage="equipment" onNavigate={setCurrentView}>
+      <DashboardLayout currentPage="equipment" onNavigate={handleNavigate}>
         <EquipmentDatabase />
       </DashboardLayout>
     );
@@ -130,14 +138,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
 
   if (currentView === 'reports') {
     return (
-      <DashboardLayout currentPage="reports" onNavigate={setCurrentView}>
+      <DashboardLayout currentPage="reports" onNavigate={handleNavigate}>
         <ReportsList />
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout currentPage="dashboard" onNavigate={setCurrentView}>
+    <DashboardLayout currentPage="dashboard" onNavigate={handleNavigate}>
       <div className="p-6 max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-slate-900 mb-2">
