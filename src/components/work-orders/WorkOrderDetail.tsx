@@ -16,6 +16,8 @@ import {
   Download,
   Trash2,
   File,
+  FileCheck,
+  XCircle,
 } from 'lucide-react';
 import AssignWorkOrder from './AssignWorkOrder';
 import StartWorkSession from '../work-session/StartWorkSession';
@@ -24,6 +26,7 @@ import RequestApproval from './RequestApproval';
 import ApprovalReview from './ApprovalReview';
 import ViewPhaseReport from '../work-session/ViewPhaseReport';
 import ReportGenerator from '../reports/ReportGenerator';
+import ApproveWorkOrder from './ApproveWorkOrder';
 import type { WorkOrder, WorkOrderAssignment, WorkOrderApproval } from '../../types/database';
 
 interface WorkOrderDetailProps {
@@ -90,6 +93,7 @@ export default function WorkOrderDetail({
   const [showReportGenerator, setShowReportGenerator] = useState(false);
   const [documents, setDocuments] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [showApproveWorkOrder, setShowApproveWorkOrder] = useState(false);
 
   const isAdmin = profile?.role === 'admin';
   const isManager = profile?.role === 'manager';
@@ -343,6 +347,48 @@ export default function WorkOrderDetail({
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  const handleMarkPendingApproval = async () => {
+    if (!confirm('Mark this work order as pending approval?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('work_orders')
+        .update({ approval_status: 'pending' })
+        .eq('id', workOrderId);
+
+      if (error) throw error;
+
+      loadWorkOrder();
+      onUpdate();
+    } catch (error) {
+      console.error('Error marking as pending approval:', error);
+      alert('Failed to mark as pending approval');
+    }
+  };
+
+  const handleRejectApproval = async () => {
+    const reason = prompt('Enter reason for rejection:');
+    if (!reason) return;
+
+    try {
+      const { error } = await supabase
+        .from('work_orders')
+        .update({
+          approval_status: 'rejected',
+          rejection_reason: reason,
+        })
+        .eq('id', workOrderId);
+
+      if (error) throw error;
+
+      loadWorkOrder();
+      onUpdate();
+    } catch (error) {
+      console.error('Error rejecting approval:', error);
+      alert('Failed to reject approval');
+    }
+  };
+
 
   if (loading) {
     return (
@@ -461,6 +507,55 @@ export default function WorkOrderDetail({
                 <h3 className="text-sm font-medium text-slate-700 mb-2">Reported Issue</h3>
                 <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
                   <p className="text-sm text-slate-900">{workOrder.reported_issue}</p>
+                </div>
+              </div>
+            )}
+
+            {workOrder.approval_status && (
+              <div>
+                <h3 className="text-sm font-medium text-slate-700 mb-2">Approval Status</h3>
+                <div className={`p-4 rounded-lg border ${
+                  workOrder.approval_status === 'approved' ? 'bg-green-50 border-green-200' :
+                  workOrder.approval_status === 'rejected' ? 'bg-red-50 border-red-200' :
+                  'bg-yellow-50 border-yellow-200'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className={`px-2 py-1 text-xs font-medium rounded ${
+                      workOrder.approval_status === 'approved' ? 'bg-green-100 text-green-800' :
+                      workOrder.approval_status === 'rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {workOrder.approval_status.toUpperCase()}
+                    </span>
+                  </div>
+                  {workOrder.approval_status === 'approved' && (
+                    <div className="space-y-1 text-sm">
+                      {workOrder.approved_by && (
+                        <div>
+                          <span className="text-slate-600">Approved by:</span>
+                          <span className="ml-2 text-slate-900 font-medium">{workOrder.approved_by}</span>
+                        </div>
+                      )}
+                      {workOrder.customer_po_number && (
+                        <div>
+                          <span className="text-slate-600">Customer PO:</span>
+                          <span className="ml-2 text-slate-900 font-medium">{workOrder.customer_po_number}</span>
+                        </div>
+                      )}
+                      {workOrder.approved_at && (
+                        <div>
+                          <span className="text-slate-600">Approved on:</span>
+                          <span className="ml-2 text-slate-900">{new Date(workOrder.approved_at).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {workOrder.approval_status === 'rejected' && workOrder.rejection_reason && (
+                    <div className="text-sm">
+                      <span className="text-slate-600">Reason:</span>
+                      <span className="ml-2 text-slate-900">{workOrder.rejection_reason}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -721,6 +816,35 @@ export default function WorkOrderDetail({
                 </button>
               )}
 
+              {canManage && !workOrder.approval_status && (
+                <button
+                  onClick={handleMarkPendingApproval}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+                >
+                  <FileCheck className="w-4 h-4" />
+                  Mark Pending Approval
+                </button>
+              )}
+
+              {canManage && workOrder.approval_status === 'pending' && (
+                <>
+                  <button
+                    onClick={() => setShowApproveWorkOrder(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                  >
+                    <CheckSquare className="w-4 h-4" />
+                    Approve
+                  </button>
+                  <button
+                    onClick={handleRejectApproval}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Reject
+                  </button>
+                </>
+              )}
+
               <button
                 onClick={() => setShowReportGenerator(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition ml-auto"
@@ -817,6 +941,19 @@ export default function WorkOrderDetail({
         <ReportGenerator
           workOrderId={workOrderId}
           onClose={() => setShowReportGenerator(false)}
+        />
+      )}
+
+      {showApproveWorkOrder && (
+        <ApproveWorkOrder
+          workOrderId={workOrderId}
+          workOrderNumber={workOrder.work_order_number}
+          onClose={() => setShowApproveWorkOrder(false)}
+          onSuccess={() => {
+            setShowApproveWorkOrder(false);
+            loadWorkOrder();
+            onUpdate();
+          }}
         />
       )}
     </>

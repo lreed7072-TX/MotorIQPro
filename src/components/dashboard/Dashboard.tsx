@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { WorkOrder } from '../../types/database';
-import { Clock, AlertCircle, CheckCircle, Plus, Search, TrendingUp } from 'lucide-react';
+import { Clock, AlertCircle, CheckCircle, Plus, Search, TrendingUp, FileCheck } from 'lucide-react';
 import DashboardLayout from '../layout/DashboardLayout';
 import AdminSettings from '../admin/AdminSettings';
 import WorkOrdersList from '../work-orders/WorkOrdersList';
@@ -33,7 +33,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
     active: 0,
     pending: 0,
     completed: 0,
+    pendingApproval: 0,
   });
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
 
   const canCreateWorkOrder = profile?.role === 'admin' || profile?.role === 'manager';
 
@@ -80,8 +82,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       const active = data?.filter(wo => wo.status === 'in_progress').length || 0;
       const pending = data?.filter(wo => wo.status === 'pending').length || 0;
       const completed = data?.filter(wo => wo.status === 'completed').length || 0;
+      const pendingApproval = data?.filter(wo => wo.approval_status === 'pending').length || 0;
 
-      setStats({ active, pending, completed });
+      setStats({ active, pending, completed, pendingApproval });
     } catch (error) {
       console.error('Error fetching work orders:', error);
     } finally {
@@ -154,8 +157,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
           <p className="text-slate-600">Here's what's happening with your work orders today.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg border border-slate-200 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <button
+            onClick={() => setFilterStatus(filterStatus === 'in_progress' ? null : 'in_progress')}
+            className={`bg-white rounded-lg border p-6 text-left transition hover:shadow-md ${
+              filterStatus === 'in_progress' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-200'
+            }`}
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="bg-blue-100 p-3 rounded-lg">
                 <Clock className="w-6 h-6 text-blue-600" />
@@ -163,9 +171,14 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
             <p className="text-2xl font-semibold text-slate-900 mb-1">{stats.active}</p>
             <p className="text-sm text-slate-600">Active Work Orders</p>
-          </div>
+          </button>
 
-          <div className="bg-white rounded-lg border border-slate-200 p-6">
+          <button
+            onClick={() => setFilterStatus(filterStatus === 'pending' ? null : 'pending')}
+            className={`bg-white rounded-lg border p-6 text-left transition hover:shadow-md ${
+              filterStatus === 'pending' ? 'border-amber-500 ring-2 ring-amber-200' : 'border-slate-200'
+            }`}
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="bg-amber-100 p-3 rounded-lg">
                 <AlertCircle className="w-6 h-6 text-amber-600" />
@@ -173,9 +186,29 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
             <p className="text-2xl font-semibold text-slate-900 mb-1">{stats.pending}</p>
             <p className="text-sm text-slate-600">Pending Assignment</p>
-          </div>
+          </button>
 
-          <div className="bg-white rounded-lg border border-slate-200 p-6">
+          <button
+            onClick={() => setFilterStatus(filterStatus === 'pending_approval' ? null : 'pending_approval')}
+            className={`bg-white rounded-lg border p-6 text-left transition hover:shadow-md ${
+              filterStatus === 'pending_approval' ? 'border-purple-500 ring-2 ring-purple-200' : 'border-slate-200'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-purple-100 p-3 rounded-lg">
+                <FileCheck className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-semibold text-slate-900 mb-1">{stats.pendingApproval}</p>
+            <p className="text-sm text-slate-600">Pending Approval</p>
+          </button>
+
+          <button
+            onClick={() => setFilterStatus(filterStatus === 'completed' ? null : 'completed')}
+            className={`bg-white rounded-lg border p-6 text-left transition hover:shadow-md ${
+              filterStatus === 'completed' ? 'border-green-500 ring-2 ring-green-200' : 'border-slate-200'
+            }`}
+          >
             <div className="flex items-center justify-between mb-4">
               <div className="bg-green-100 p-3 rounded-lg">
                 <CheckCircle className="w-6 h-6 text-green-600" />
@@ -183,7 +216,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
             <p className="text-2xl font-semibold text-slate-900 mb-1">{stats.completed}</p>
             <p className="text-sm text-slate-600">Completed Recently</p>
-          </div>
+          </button>
         </div>
 
         <div className="bg-white rounded-lg border border-slate-200">
@@ -217,7 +250,15 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
           ) : (
             <div className="divide-y divide-slate-200">
-              {workOrders.map((wo) => (
+              {workOrders
+                .filter((wo) => {
+                  if (!filterStatus) return true;
+                  if (filterStatus === 'pending_approval') {
+                    return wo.approval_status === 'pending';
+                  }
+                  return wo.status === filterStatus;
+                })
+                .map((wo) => (
                 <div
                   key={wo.id}
                   onClick={() => setSelectedWorkOrderId(wo.id)}
