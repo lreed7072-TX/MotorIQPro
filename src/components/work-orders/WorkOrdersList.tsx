@@ -5,7 +5,6 @@ import { Search, Filter, Plus, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import CreateWorkOrder from './CreateWorkOrder';
 import WorkOrderDetail from './WorkOrderDetail';
-import DashboardLayout from '../layout/DashboardLayout';
 
 export default function WorkOrdersList() {
   const { profile } = useAuth();
@@ -78,7 +77,7 @@ export default function WorkOrdersList() {
   };
 
   return (
-    <DashboardLayout currentPage="work-orders" onNavigate={() => {}}>
+    <>
       <div className="p-6 max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-slate-900 mb-2">Work Orders</h1>
@@ -260,6 +259,6 @@ export default function WorkOrdersList() {
           }}
         />
       )}
-    </DashboardLayout>
+    </>
   );
 }

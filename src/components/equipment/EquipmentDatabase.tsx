@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { EquipmentUnit, EquipmentModel } from '../../types/database';
 import { Search, Filter, FileText, History, Info } from 'lucide-react';
-import DashboardLayout from '../layout/DashboardLayout';
 
 export default function EquipmentDatabase() {
   const [equipment, setEquipment] = useState<EquipmentUnit[]>([]);
@@ -66,8 +65,7 @@ export default function EquipmentDatabase() {
   };
 
   return (
-    <DashboardLayout currentPage="equipment">
-      <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-slate-900 mb-2">Equipment Database</h1>
           <p className="text-slate-600">Browse equipment specifications and history</p>
@@ -271,6 +269,5 @@ export default function EquipmentDatabase() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }

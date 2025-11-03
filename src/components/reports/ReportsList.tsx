@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Report } from '../../types/database';
 import { Search, Filter, Download, FileText, Eye, CheckCircle } from 'lucide-react';
-import DashboardLayout from '../layout/DashboardLayout';
 
 export default function ReportsList() {
   const [reports, setReports] = useState<Report[]>([]);
@@ -81,8 +80,7 @@ export default function ReportsList() {
   };
 
   return (
-    <DashboardLayout currentPage="reports">
-      <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-slate-900 mb-2">Reports</h1>
           <p className="text-slate-600">View and manage inspection and repair reports</p>
@@ -214,7 +212,6 @@ export default function ReportsList() {
             </div>
           )}
         </div>
-      </div>
-    </DashboardLayout>
+    </div>
   );
 }
