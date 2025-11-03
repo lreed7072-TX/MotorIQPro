@@ -11,7 +11,11 @@ import ReportsList from '../reports/ReportsList';
 import CreateWorkOrder from '../work-orders/CreateWorkOrder';
 import WorkOrderDetail from '../work-orders/WorkOrderDetail';
 
-export default function Dashboard() {
+interface DashboardProps {
+  onNavigate?: (page: string) => void;
+}
+
+export default function Dashboard({ onNavigate }: DashboardProps) {
   const { profile } = useAuth();
   const [currentView, setCurrentView] = useState<'dashboard' | 'work-orders' | 'equipment' | 'reports' | 'settings'>('dashboard');
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);

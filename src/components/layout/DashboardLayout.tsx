@@ -9,13 +9,20 @@ import {
   LogOut,
   Menu,
   X,
-  User
+  User,
+  Calendar,
+  Package,
+  MessageSquare,
+  Clock,
+  BarChart3,
+  FileSpreadsheet
 } from 'lucide-react';
+import OfflineIndicator from '../shared/OfflineIndicator';
 
 interface DashboardLayoutProps {
   children: ReactNode;
   currentPage?: string;
-  onNavigate?: (page: 'dashboard' | 'work-orders' | 'equipment' | 'reports' | 'settings') => void;
+  onNavigate?: (page: string) => void;
 }
 
 export default function DashboardLayout({ children, currentPage = 'dashboard', onNavigate }: DashboardLayoutProps) {
@@ -24,16 +31,27 @@ export default function DashboardLayout({ children, currentPage = 'dashboard', o
 
   const isAdmin = profile?.role === 'admin';
   const isManager = profile?.role === 'manager';
+  const isTechnician = profile?.role === 'technician';
+  const isSalesperson = profile?.role === 'salesperson';
 
   const navigation = [
-    { name: 'Dashboard', icon: LayoutDashboard, page: 'dashboard' },
-    { name: 'Work Orders', icon: ClipboardList, page: 'work-orders' },
-    { name: 'Equipment', icon: Wrench, page: 'equipment' },
-    { name: 'Reports', icon: FileText, page: 'reports' },
-  ];
+    { name: 'Dashboard', icon: LayoutDashboard, page: 'dashboard', roles: ['all'] },
+    { name: 'Work Orders', icon: ClipboardList, page: 'work-orders', roles: ['all'] },
+    { name: 'Scheduling', icon: Calendar, page: 'scheduling', roles: ['admin', 'manager'] },
+    { name: 'Equipment', icon: Wrench, page: 'equipment', roles: ['all'] },
+    { name: 'Inventory', icon: Package, page: 'inventory', roles: ['admin', 'manager', 'technician'] },
+    { name: 'Quotes', icon: FileSpreadsheet, page: 'quotes', roles: ['admin', 'manager', 'salesperson'] },
+    { name: 'Messages', icon: MessageSquare, page: 'messages', roles: ['all'] },
+    { name: 'Time Clock', icon: Clock, page: 'time-clock', roles: ['technician'] },
+    { name: 'Analytics', icon: BarChart3, page: 'analytics', roles: ['admin', 'manager'] },
+    { name: 'Reports', icon: FileText, page: 'reports', roles: ['all'] },
+  ].filter(item =>
+    item.roles.includes('all') ||
+    item.roles.includes(profile?.role || '')
+  );
 
   if (isAdmin || isManager) {
-    navigation.push({ name: 'Settings', icon: Settings, page: 'settings' });
+    navigation.push({ name: 'Settings', icon: Settings, page: 'settings', roles: ['admin', 'manager'] });
   }
 
   const handleSignOut = async () => {
@@ -135,6 +153,8 @@ export default function DashboardLayout({ children, currentPage = 'dashboard', o
       <main className="lg:ml-64 pt-16 lg:pt-0">
         {children}
       </main>
+
+      <OfflineIndicator />
     </div>
   );
 }
