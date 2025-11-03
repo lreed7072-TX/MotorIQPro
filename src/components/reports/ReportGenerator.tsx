@@ -88,15 +88,25 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
 
       if (sessionsError) throw sessionsError;
 
+      console.log('Found completed sessions:', sessions?.length);
+
       const formattedSessions: PhaseSession[] = [];
       const phaseMap = new Map<string, PhaseSession>();
 
       for (const session of sessions || []) {
-        const { data: procedureData } = await supabase
+        console.log('Processing session:', session.id, 'procedure_template_id:', session.procedure_template_id);
+
+        const { data: procedureData, error: procError } = await supabase
           .from('procedure_templates')
           .select('name, phase')
           .eq('id', session.procedure_template_id)
-          .single();
+          .maybeSingle();
+
+        if (procError) {
+          console.error('Error fetching procedure:', procError);
+        }
+
+        console.log('Procedure data:', procedureData);
 
         const { data: reportDataArray } = await supabase
           .from('phase_reports')
