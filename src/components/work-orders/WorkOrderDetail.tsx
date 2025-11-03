@@ -73,6 +73,7 @@ export default function WorkOrderDetail({
   const [assignments, setAssignments] = useState<WorkOrderAssignment[]>([]);
   const [approvals, setApprovals] = useState<WorkOrderApproval[]>([]);
   const [currentSession, setCurrentSession] = useState<any>(null);
+  const [completedSessions, setCompletedSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAssign, setShowAssign] = useState(false);
   const [showStartSession, setShowStartSession] = useState(false);
@@ -161,6 +162,19 @@ export default function WorkOrderDetail({
         .maybeSingle();
 
       setCurrentSession(sessionData);
+
+      const { data: completedData } = await supabase
+        .from('work_sessions')
+        .select(`
+          *,
+          procedure:procedure_templates (name, phase),
+          phase_report:phase_reports (id, summary)
+        `)
+        .eq('work_order_id', workOrderId)
+        .eq('status', 'completed')
+        .order('started_at', { ascending: true });
+
+      setCompletedSessions(completedData || []);
     } catch (error) {
       console.error('Error loading work order:', error);
     } finally {
@@ -402,6 +416,46 @@ export default function WorkOrderDetail({
                         }`}>
                           {assignment.status}
                         </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {completedSessions.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-slate-700 mb-3">Completed Phases</h3>
+                <div className="space-y-2">
+                  {completedSessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className="p-4 bg-green-50 rounded-lg border border-green-200 cursor-pointer hover:bg-green-100 transition"
+                      onClick={() => {
+                        setSelectedSessionId(session.id);
+                        setShowViewReport(true);
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-900">
+                            {session.procedure?.name || 'Unknown Procedure'}
+                          </p>
+                          <p className="text-xs text-slate-600">
+                            {PHASE_LABELS[session.procedure?.phase] || session.procedure?.phase}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-1">
+                            Completed: {new Date(session.completed_at).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {session.phase_report && session.phase_report.length > 0 && (
+                            <FileText className="w-4 h-4 text-green-600" />
+                          )}
+                          <span className="px-2 py-1 text-xs font-medium rounded bg-green-100 text-green-800">
+                            Completed
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
