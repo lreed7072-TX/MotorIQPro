@@ -25,41 +25,46 @@ export default function ViewPhaseReport({ sessionId, onClose }: ViewPhaseReportP
         .select(
           `
           *,
-          procedure_template:procedure_templates(name, phase),
-          phase_report:phase_reports(summary, technician_notes)
+          procedure_template:procedure_templates(name, phase)
         `
         )
         .eq('id', sessionId)
         .single();
 
       if (sessionError) throw sessionError;
-      setReport(sessionData);
 
-      const { data: stepsData, error: stepsError } = await supabase
-        .from('procedure_steps')
-        .select('*')
-        .eq('procedure_template_id', sessionData.procedure_template_id)
-        .order('step_number');
-
-      if (stepsError) throw stepsError;
-      setSteps(stepsData || []);
-
-      const { data: completionsData, error: completionsError } = await supabase
-        .from('step_completions')
-        .select('*')
-        .eq('work_session_id', sessionId);
-
-      if (completionsError) throw completionsError;
-      setCompletions(completionsData || []);
-
-      const { data: photosData, error: photosError } = await supabase
-        .from('session_photos')
+      // Get the latest phase report for this session
+      const { data: phaseReportData, error: reportError } = await supabase
+        .from('phase_reports')
         .select('*')
         .eq('work_session_id', sessionId)
-        .order('captured_at');
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (photosError) throw photosError;
-      setPhotos(photosData || []);
+      if (reportError) {
+        console.error('Error loading phase report:', reportError);
+      }
+
+      // Attach phase report to session data
+      const sessionWithReport = {
+        ...sessionData,
+        phase_report: phaseReportData
+      };
+
+      setReport(sessionWithReport);
+
+      // Get step completions from the phase report's JSONB data
+      const stepCompletions = phaseReportData?.step_completions || [];
+      setCompletions(stepCompletions);
+
+      // Get photos from the phase report's JSONB data
+      const reportPhotos = phaseReportData?.photos || [];
+      setPhotos(reportPhotos);
+
+      // We don't need to fetch procedure_steps separately anymore
+      // since we have the data in step_completions
+      setSteps([]);
     } catch (error) {
       console.error('Error loading report:', error);
     } finally {
@@ -78,10 +83,6 @@ export default function ViewPhaseReport({ sessionId, onClose }: ViewPhaseReportP
   }
 
   if (!report) return null;
-
-  const getCompletionForStep = (stepId: string) => {
-    return completions.find((c) => c.step_id === stepId);
-  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
@@ -160,27 +161,39 @@ export default function ViewPhaseReport({ sessionId, onClose }: ViewPhaseReportP
           <div>
             <h3 className="text-sm font-medium text-slate-700 mb-3">Procedure Steps</h3>
             <div className="space-y-2">
-              {steps.map((step) => {
-                const completion = getCompletionForStep(step.id);
+              {completions.map((completion, index) => {
+                const hasMeasurements = completion.measurements && Object.keys(completion.measurements).length > 0;
                 return (
                   <div
-                    key={step.id}
-                    className={`p-4 rounded-lg border ${
-                      completion
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-slate-50 border-slate-200'
-                    }`}
+                    key={index}
+                    className="p-4 rounded-lg border bg-green-50 border-green-200"
                   >
                     <div className="flex items-start gap-3">
-                      {completion && <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />}
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
                         <p className="text-sm font-medium text-slate-900">
-                          {step.step_number}. {step.description}
+                          {completion.step_number}. {completion.step_title}
                         </p>
-                        {completion?.notes && (
-                          <p className="text-sm text-slate-600 mt-2">Notes: {completion.notes}</p>
+                        {hasMeasurements && (
+                          <div className="mt-2 p-2 bg-white rounded border border-green-200">
+                            <p className="text-xs font-medium text-slate-700 mb-1">Measurements:</p>
+                            <div className="space-y-1">
+                              {Object.entries(completion.measurements).map(([key, value]) => (
+                                value && (
+                                  <p key={key} className="text-xs text-slate-600">
+                                    <span className="font-medium">{key}:</span> {value as string}
+                                  </p>
+                                )
+                              ))}
+                            </div>
+                          </div>
                         )}
-                        {completion?.completed_at && (
+                        {completion.observations && (
+                          <p className="text-sm text-slate-600 mt-2">
+                            <span className="font-medium">Observations:</span> {completion.observations}
+                          </p>
+                        )}
+                        {completion.completed_at && (
                           <p className="text-xs text-slate-500 mt-1">
                             Completed: {new Date(completion.completed_at).toLocaleString()}
                           </p>
@@ -197,10 +210,10 @@ export default function ViewPhaseReport({ sessionId, onClose }: ViewPhaseReportP
             <div>
               <h3 className="text-sm font-medium text-slate-700 mb-3">Photos ({photos.length})</h3>
               <div className="grid grid-cols-3 gap-4">
-                {photos.map((photo) => (
-                  <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200">
+                {photos.map((photo, index) => (
+                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200">
                     <img
-                      src={photo.photo_url}
+                      src={photo.url || photo.photo_url}
                       alt={photo.caption || 'Session photo'}
                       className="w-full h-full object-cover"
                     />
@@ -215,13 +228,18 @@ export default function ViewPhaseReport({ sessionId, onClose }: ViewPhaseReportP
             </div>
           )}
 
-          {report.equipment_details && (
+          {report.phase_report?.equipment_details && Object.keys(report.phase_report.equipment_details).length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-slate-700 mb-2">Equipment Details</h3>
               <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <pre className="text-sm text-slate-900 whitespace-pre-wrap font-mono">
-                  {JSON.stringify(report.equipment_details, null, 2)}
-                </pre>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {Object.entries(report.phase_report.equipment_details).map(([key, value]) => (
+                    <div key={key}>
+                      <span className="text-slate-500 font-medium">{key.replace(/_/g, ' ')}:</span>
+                      <span className="ml-2 text-slate-900">{value as string}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
