@@ -58,6 +58,8 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
 
   const loadData = async () => {
     try {
+      console.log('ReportGenerator: Loading data for work order:', workOrderId);
+
       const { data: woData, error: woError } = await supabase
         .from('work_orders')
         .select(
@@ -76,7 +78,12 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
         .eq('id', workOrderId)
         .maybeSingle();
 
-      if (woError) throw woError;
+      if (woError) {
+        console.error('Error loading work order:', woError);
+        throw woError;
+      }
+
+      console.log('Work order loaded:', woData);
       setWorkOrder(woData);
 
       const { data: sessions, error: sessionsError } = await supabase
@@ -140,8 +147,10 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
         new Date(a.started_at).getTime() - new Date(b.started_at).getTime()
       );
 
+      console.log('Final phase sessions:', uniqueSessions.length);
       setPhaseSessions(uniqueSessions);
     } catch (err: any) {
+      console.error('Error in loadData:', err);
       setError(err.message);
     } finally {
       setLoading(false);
