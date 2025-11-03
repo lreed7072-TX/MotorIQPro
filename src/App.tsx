@@ -14,12 +14,10 @@ import MessagesCenter from './components/messages/MessagesCenter';
 import TimeClock from './components/time-clock/TimeClock';
 import AnalyticsDashboard from './components/analytics/AnalyticsDashboard';
 import DocumentsLibrary from './components/documents/DocumentsLibrary';
-import OfflineIndicator from './components/shared/OfflineIndicator';
 
 function AppContent() {
   const { user, loading } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [showOfflineIndicator, setShowOfflineIndicator] = useState(false);
 
   if (loading) {
     return (
@@ -109,20 +107,10 @@ function AppContent() {
   };
 
   if (currentPage === 'dashboard') {
-    return (
-      <>
-        <Dashboard onNavigate={setCurrentPage} />
-        {showOfflineIndicator && <OfflineIndicator />}
-      </>
-    );
+    return <Dashboard onNavigate={setCurrentPage} />;
   }
 
-  return (
-    <>
-      {renderPage()}
-      {showOfflineIndicator && <OfflineIndicator />}
-    </>
-  );
+  return renderPage();
 }
 
 function App() {
