@@ -60,8 +60,7 @@ export default function SchedulingCalendar() {
           customer:customers(company_name, address),
           equipment_unit:equipment_units(serial_number)
         `)
-        .gte('scheduled_date', startDate)
-        .lte('scheduled_date', endDate);
+        .or(`and(scheduled_date.gte.${startDate},scheduled_date.lte.${endDate}),assigned_to.is.null`);
 
       setTechnicians(techData || []);
       setWorkOrders(woData || []);
@@ -150,7 +149,11 @@ export default function SchedulingCalendar() {
   };
 
   const getUnassignedOrders = () => {
-    return workOrders.filter(wo => !wo.assigned_to);
+    return workOrders.filter(wo =>
+      !wo.assigned_to &&
+      wo.status !== 'completed' &&
+      wo.status !== 'cancelled'
+    );
   };
 
   const getPriorityColor = (priority: string) => {
