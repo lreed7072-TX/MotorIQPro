@@ -7,6 +7,7 @@ export default function CompanyBranding() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -60,9 +61,12 @@ export default function CompanyBranding() {
         .getPublicUrl(filePath);
 
       setSettings({ ...settings, company_logo_url: publicUrl });
+      setSuccessMessage('Logo uploaded successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
       console.error('Error uploading logo:', error);
-      alert('Failed to upload logo');
+      setSuccessMessage('Failed to upload logo');
+      setTimeout(() => setSuccessMessage(''), 3000);
     } finally {
       setUploading(false);
     }
@@ -95,11 +99,13 @@ export default function CompanyBranding() {
         if (error) throw error;
       }
 
-      alert('Settings saved successfully!');
+      setSuccessMessage('Settings saved successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
       loadSettings();
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('Failed to save settings');
+      setSuccessMessage('Failed to save settings');
+      setTimeout(() => setSuccessMessage(''), 3000);
     } finally {
       setSaving(false);
     }
@@ -123,6 +129,12 @@ export default function CompanyBranding() {
         </div>
         <p className="text-slate-600">Configure your company information and branding for quotes, reports, and forms</p>
       </div>
+
+      {successMessage && (
+        <div className={`mb-4 p-4 rounded-lg ${successMessage.includes('successfully') ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+          {successMessage}
+        </div>
+      )}
 
       <div className="bg-white rounded-lg border border-slate-200 p-6 space-y-6">
         <div>
