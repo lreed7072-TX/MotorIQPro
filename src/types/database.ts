@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'manager' | 'technician';
+export type UserRole = 'admin' | 'manager' | 'technician' | 'salesperson';
 export type EquipmentCategory = 'motor' | 'pump' | 'gearbox' | 'other';
 export type EquipmentStatus = 'active' | 'in_repair' | 'retired';
 export type PartType = 'bearing' | 'seal' | 'gasket' | 'winding' | 'impeller' | 'other';
@@ -6,7 +6,15 @@ export type ProcedureType = 'teardown' | 'inspection' | 'rebuild' | 'test';
 export type StepType = 'action' | 'inspection' | 'measurement' | 'decision';
 export type WorkType = 'repair' | 'inspection' | 'rebuild' | 'pm';
 export type PriorityLevel = 'low' | 'medium' | 'high' | 'emergency';
-export type WorkOrderStatus = 'pending' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
+export type WorkOrderStatus = 'pending' | 'in_progress' | 'on_hold' | 'awaiting_parts' | 'completed' | 'invoiced' | 'cancelled';
+export type CustomerPriority = 'low' | 'medium' | 'high' | 'vip';
+export type AccountStatus = 'active' | 'inactive' | 'at_risk' | 'churned' | 'prospect';
+export type InventoryCategory = 'bearings' | 'seals' | 'gaskets' | 'windings' | 'impellers' | 'shafts' | 'couplings' | 'fasteners' | 'lubricants' | 'electrical' | 'tools' | 'consumables' | 'other';
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'quoted' | 'negotiation' | 'won' | 'lost' | 'inactive';
+export type QuoteStatus = 'draft' | 'sent' | 'viewed' | 'accepted' | 'rejected' | 'expired' | 'converted';
+export type ContractStatus = 'draft' | 'active' | 'expiring_soon' | 'expired' | 'cancelled' | 'completed';
+export type NotificationType = 'work_order_assigned' | 'work_order_updated' | 'work_order_completed' | 'message_received' | 'approval_requested' | 'approval_completed' | 'parts_low_stock' | 'quote_accepted' | 'contract_expiring' | 'maintenance_due' | 'escalation_created' | 'system_alert';
+export type EscalationSeverity = 'low' | 'medium' | 'high' | 'critical';
 export type WorkOrderPhase =
   | 'pending_assignment'
   | 'initial_testing'
