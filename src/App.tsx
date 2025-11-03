@@ -8,6 +8,11 @@ import EquipmentDatabase from './components/equipment/EquipmentDatabase';
 import ReportsList from './components/reports/ReportsList';
 import SchedulingCalendar from './components/scheduling/SchedulingCalendar';
 import AdminSettings from './components/admin/AdminSettings';
+import InventoryManagement from './components/inventory/InventoryManagement';
+import QuotesManagement from './components/quotes/QuotesManagement';
+import MessagesCenter from './components/messages/MessagesCenter';
+import TimeClock from './components/time-clock/TimeClock';
+import AnalyticsDashboard from './components/analytics/AnalyticsDashboard';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -50,46 +55,31 @@ function AppContent() {
       case 'inventory':
         return (
           <DashboardLayout currentPage={currentPage} onNavigate={setCurrentPage}>
-            <div className="p-6">
-              <h1 className="text-2xl font-bold mb-4">Inventory Management</h1>
-              <p className="text-slate-600">Inventory management UI coming soon...</p>
-            </div>
+            <InventoryManagement />
           </DashboardLayout>
         );
       case 'quotes':
         return (
           <DashboardLayout currentPage={currentPage} onNavigate={setCurrentPage}>
-            <div className="p-6">
-              <h1 className="text-2xl font-bold mb-4">Quotes & Contracts</h1>
-              <p className="text-slate-600">Quote management UI coming soon...</p>
-            </div>
+            <QuotesManagement />
           </DashboardLayout>
         );
       case 'messages':
         return (
           <DashboardLayout currentPage={currentPage} onNavigate={setCurrentPage}>
-            <div className="p-6">
-              <h1 className="text-2xl font-bold mb-4">Messages</h1>
-              <p className="text-slate-600">Messaging UI coming soon...</p>
-            </div>
+            <MessagesCenter />
           </DashboardLayout>
         );
       case 'time-clock':
         return (
           <DashboardLayout currentPage={currentPage} onNavigate={setCurrentPage}>
-            <div className="p-6">
-              <h1 className="text-2xl font-bold mb-4">Time Clock</h1>
-              <p className="text-slate-600">Time tracking UI coming soon...</p>
-            </div>
+            <TimeClock />
           </DashboardLayout>
         );
       case 'analytics':
         return (
           <DashboardLayout currentPage={currentPage} onNavigate={setCurrentPage}>
-            <div className="p-6">
-              <h1 className="text-2xl font-bold mb-4">Analytics</h1>
-              <p className="text-slate-600">Analytics dashboard UI coming soon...</p>
-            </div>
+            <AnalyticsDashboard />
           </DashboardLayout>
         );
       case 'reports':
