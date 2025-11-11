@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { X, CheckSquare, Square, FileText, Download, CheckCircle } from 'lucide-react';
+import { X, CheckSquare, Square, FileText, Download, CheckCircle, Save } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ReportGeneratorProps {
   workOrderId: string;
@@ -44,13 +45,17 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 export default function ReportGenerator({ workOrderId, onClose }: ReportGeneratorProps) {
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [workOrder, setWorkOrder] = useState<any>(null);
   const [phaseSessions, setPhaseSessions] = useState<PhaseSession[]>([]);
   const [selectedPhases, setSelectedPhases] = useState<Set<string>>(new Set());
   const [generatedReportHTML, setGeneratedReportHTML] = useState<string>('');
+  const [savedReportId, setSavedReportId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     loadData();
@@ -567,6 +572,45 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
     }
   };
 
+  const handleSaveReport = async () => {
+    setSaving(true);
+    setError('');
+    setSuccessMessage('');
+
+    try {
+      const reportNumber = `RPT-${workOrder.work_order_number}-${Date.now()}`;
+
+      const reportData = {
+        work_order_id: workOrderId,
+        report_type: 'field_service',
+        report_number: reportNumber,
+        generated_by: profile?.id,
+        status: 'draft',
+        content: {
+          html: generatedReportHTML,
+          selected_phases: Array.from(selectedPhases),
+          generated_at: new Date().toISOString(),
+        },
+      };
+
+      const { data, error: insertError } = await supabase
+        .from('reports')
+        .insert([reportData])
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      setSavedReportId(data.id);
+      setSuccessMessage('Report saved successfully to work order!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleExportPDF = () => {
     const blob = new Blob([generatedReportHTML], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
@@ -655,12 +699,25 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
             </div>
           ) : (
             <div className="space-y-4">
+              {successMessage && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-green-800">{successMessage}</p>
+                </div>
+              )}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-sm text-red-800">{error}</p>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-slate-900">Generated Report Preview</h3>
                 <button
                   onClick={() => {
                     setGeneratedReportHTML('');
                     setError('');
+                    setSuccessMessage('');
+                    setSavedReportId(null);
                   }}
                   className="text-sm text-blue-600 hover:text-blue-700"
                 >
@@ -699,6 +756,14 @@ export default function ReportGenerator({ workOrderId, onClose }: ReportGenerato
               </>
             ) : (
               <>
+                <button
+                  onClick={handleSaveReport}
+                  disabled={saving || savedReportId !== null}
+                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className="w-4 h-4" />
+                  {saving ? 'Saving...' : savedReportId ? 'Saved to Work Order' : 'Save to Work Order'}
+                </button>
                 <button
                   onClick={handleExportPDF}
                   className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
